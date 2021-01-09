@@ -179,16 +179,13 @@ update_repo()
 
     # we cannot push throug the directory stack
     # so lets just store PWD
-
     OWD=$PWD
     cd $2
 
     $SVN $UPDATE
 
     cd $OWD
-
     echo "Done."
-
 }
 
 main $@
