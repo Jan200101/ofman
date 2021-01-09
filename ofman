@@ -1,0 +1,194 @@
+#!/usr/bin/sh
+
+# NEVER install OF as root
+# don't even get to the first line of actual code
+# just abort ASAP
+if [ "$(id -u)" -eq 0 ] || [ -n "$SUDO_USER" ]; then
+    echo "Do not install OpenFortress as root"
+    exit
+fi
+
+PROG=$(basename $0)
+
+GIT_SVN="git svn"
+DEFAULT_SVN=svn
+# store some commands in vars for git svn
+CHECKOUT="checkout"
+UPDATE="update"
+
+# helper vars
+EDITOR=${EDITOR:-vi}
+CONFIG_FILE=${XDG_CONFIG_HOME:-${HOME}/.config}/ofman
+SPACING="   "
+
+help_message()
+{
+    echo "OF Manager Usage"
+    echo "$SPACING $PROG install"
+    echo "$SPACING $PROG uninstall"
+    echo "$SPACING $PROG update"
+    echo "$SPACING $PROG config"
+}
+
+main()
+{
+    # try fetching the Distro we are on
+    if [ -f "/etc/os-release" ]; then
+        . /etc/os-release
+    fi
+
+    load_config
+    check_svn
+
+    if [ -z "$SKIP_DEPENDENCIES" ]; then
+        resolve_dependencies $id;
+    fi
+
+
+    case $1 in
+        install)
+            checkout_repo $OF_REPO $OF_DIR
+            ;;
+
+        uninstall)
+            delete_repo $OF_REPO $OF_DIR
+            echo "test"
+            ;;
+
+        update)
+            update_repo $OF_REPO $OF_DIR
+            ;;
+
+        config)
+            $EDITOR $CONFIG_FILE
+            ;;
+
+        *)
+            help_message
+            ;;
+    esac
+}
+
+load_config()
+{
+    if [ -f "$CONFIG_FILE" ]; then
+        . $CONFIG_FILE
+    else
+        OF_REPO="https://svn.openfortress.fun/svn/open_fortress/"
+        STEAM_DIR="$HOME/.local/share/Steam"
+        OF_DIR=$STEAM_DIR/steamapps/sourcemods/open_fortress
+
+        mkdir -p $(dirname $CONFIG_FILE)
+        echo "SVN=\"$DEFAULT_SVN\"" > $CONFIG_FILE
+        echo "OF_REPO=\"$OF_REPO\"" >> $CONFIG_FILE
+        echo "OF_DIR=\"$OF_DIR\"" >> $CONFIG_FILE
+    fi
+
+    if [ -z "$SVN" ] || [ -z "$OF_REPO" ] || [ -z "OF_DIR" ]; then
+        echo "Your config is invalid"
+        echo "Delete \"$CONFIG_FILE\" and rerun ofman"
+        exit
+    fi
+}
+
+check_svn()
+{
+    if [ "$SVN" = "$DEFAULT_SVN" ]; then
+        SVN="$DEFAULT_SVN"
+        if [ -n "$(which $SVN)" ]; then
+            # no need to install SVN if its present
+            SKIP_DEPENDENCIES=y
+        fi
+    else
+        # the user provided a different svn, lets skip dependencies
+        SKIP_DEPENDENCIES=y
+
+        if [ "$SVN" = "$GIT_SVN" ]; then
+            CHECKOUT="clone"
+            UPDATE="fetch"
+        fi
+
+    fi
+}
+
+resolve_dependencies()
+{
+    echo "$$SPACING Installing dependencies"
+
+    # should we really assume the user has
+    # a system with a updated repo cache?
+    case $1 in
+        fedora)
+            sudo dnf install subversion -y
+            ;;
+
+        ubuntu | debian | linuxmint)
+            sudo apt-get install subversion -y
+            ;;
+
+
+        arch | manjaro | artix)
+            sudo pacman --noconfirm -S subversion
+            ;;
+
+        *)
+            echo "$SPACING Couldn't install dependencies."
+            echo "$SPACING Install the following dependencies yourself:"
+            echo "$SPACING  - subversion"
+            ;;
+    esac
+}
+
+checkout_repo()
+{
+    echo "Installing OpenFortress to $OF_DIR"
+
+    $SVN $CHECKOUT $1 $2
+}
+
+delete_repo()
+{
+    echo "Are you sure you want to delete this directory? [y/n]"
+    echo "\"$2\""
+
+    while [ true ]
+    do
+        read input
+        case $input in
+            y*)
+                echo "Deleting"
+                rm -rf $2
+                return
+                ;;
+
+            n*)
+                echo "Exiting"
+                return
+                ;;
+
+            *)
+                echo "Please insert y or n"
+                ;;
+        esac
+    done
+}
+
+update_repo()
+{
+    echo "Updating OpenFortress"
+
+    # we cannot push throug the directory stack
+    # so lets just store PWD
+
+    OWD=$PWD
+    cd $2
+
+    $SVN $UPDATE
+
+    cd $OWD
+
+    echo "Done."
+
+}
+
+main $@
