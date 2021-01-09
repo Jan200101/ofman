@@ -21,14 +21,38 @@ EDITOR=${EDITOR:-vi}
 CONFIG_FILE=${XDG_CONFIG_HOME:-${HOME}/.config}/ofman
 SPACING="   "
 
+err()
+{
+    # print in red for those bad bad errors
+    tput setaf 9
+    echo -e "$1"
+    tput sgr0
+}
+
+info()
+{
+    # print info in blue because pretty
+    tput setaf 14
+    echo -e "$1"
+    tput sgr0
+}
+
+fin()
+{
+    # print finished stuff green
+    tput setaf 10
+    echo -e "$1"
+    tput sgr0
+}
+
 help_message()
 {
-    echo "OF Manager Usage"
-    echo "$SPACING $PROG install"
-    echo "$SPACING $PROG uninstall"
-    echo "$SPACING $PROG update"
-    echo "$SPACING $PROG run"
-    echo "$SPACING $PROG config"
+    fin "OF Manager Usage"
+    info "$SPACING $PROG install"
+    info "$SPACING $PROG uninstall"
+    info "$SPACING $PROG update"
+    info "$SPACING $PROG run"
+    info "$SPACING $PROG config"
 }
 
 main()
@@ -42,7 +66,7 @@ main()
     check_svn
 
     if [ -z "$SKIP_DEPENDENCIES" ]; then
-        resolve_dependencies $id;
+        resolve_dependencies $ID;
     fi
 
 
@@ -100,7 +124,7 @@ check_svn()
 {
     if [ "$SVN" = "$DEFAULT_SVN" ]; then
         SVN="$DEFAULT_SVN"
-        if [ -n "$(which $SVN)" ]; then
+        if [ -n "$(which $SVN 2> /dev/null)" ]; then
             # no need to install SVN if its present
             SKIP_DEPENDENCIES=y
         fi
@@ -118,42 +142,48 @@ check_svn()
 
 resolve_dependencies()
 {
-    echo "$$SPACING Installing dependencies"
+    info "Installing dependencies"
 
     # should we really assume the user has
     # a system with a updated repo cache?
     case $1 in
         fedora)
-            sudo dnf install subversion -y
+            sudo dnf install subversion -y || err "Couldn't install subversion using dnf."
             ;;
 
         ubuntu | debian | linuxmint)
-            sudo apt-get install subversion -y
+            sudo apt-get update || err "Couldn't update repository cache."
+            sudo apt-get install subversion -y || err "Couldn't install subversion using apt-get."
             ;;
 
 
         arch | manjaro | artix)
-            sudo pacman --noconfirm -S subversion
+            sudo pacman --noconfirm -Sy subversion || err "Couldn't install subversion using pacman."
             ;;
 
+        void)
+            sudo xbps-install -Sy subversion || err "Couldn't install subversion using xbps."
+
         *)
-            echo "$SPACING Couldn't install dependencies."
-            echo "$SPACING Install the following dependencies yourself:"
-            echo "$SPACING  - subversion"
+            err "$SPACING Couldn't install dependencies."
+            err "$SPACING Install the following dependencies yourself:"
+            err "$SPACING  - subversion"
             ;;
     esac
 }
 
 checkout_repo()
 {
-    echo "Installing OpenFortress to $OF_DIR"
+    info "Installing OpenFortress to $OF_DIR"
 
     $SVN $CHECKOUT $1 $2
+
+    fin "OpenFortress installed!"
 }
 
 delete_repo()
 {
-    echo "Are you sure you want to delete this directory? [y/n]"
+    err "Are you sure you want to delete this directory? [y/n]"
     echo "\"$2\""
 
     while [ true ]
@@ -161,18 +191,18 @@ delete_repo()
         read input
         case $input in
             y*)
-                echo "Deleting"
+                info "Deleting"
                 rm -rf $2
                 return
                 ;;
 
             n*)
-                echo "Exiting"
+                info "Exiting"
                 return
                 ;;
 
             *)
-                echo "Please insert y or n"
+                err "Please insert y or n"
                 ;;
         esac
     done
@@ -180,7 +210,7 @@ delete_repo()
 
 update_repo()
 {
-    echo "Updating OpenFortress"
+    info "Updating OpenFortress"
 
     # we cannot push throug the directory stack
     # so lets just store PWD
@@ -190,7 +220,7 @@ update_repo()
     $SVN $UPDATE
 
     cd "$OWD"
-    echo "Done."
+    fin "Done."
 }
 
 run()
@@ -198,7 +228,7 @@ run()
     pidof steam 2>1 > /dev/null
 
     if [ "$?" -eq 1 ]; then
-        echo "Steam is not running"
+        err "Steam is not running"
     else
         steam -applaunch 243750 -game $OF_DIR -secure -steam 2>&1 > /dev/null &
     fi
