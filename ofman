@@ -27,6 +27,7 @@ help_message()
     echo "$SPACING $PROG install"
     echo "$SPACING $PROG uninstall"
     echo "$SPACING $PROG update"
+    echo "$SPACING $PROG run"
     echo "$SPACING $PROG config"
 }
 
@@ -52,11 +53,14 @@ main()
 
         uninstall)
             delete_repo $OF_REPO $OF_DIR
-            echo "test"
             ;;
 
         update)
             update_repo $OF_REPO $OF_DIR
+            ;;
+
+        run)
+            run $OF_DIR
             ;;
 
         config)
@@ -188,4 +192,14 @@ update_repo()
     echo "Done."
 }
 
+run()
+{
+    pidof steam 2>1 > /dev/null
+
+    if [ "$?" -eq 1 ]; then
+        echo "Steam is not running"
+    else
+        steam -applaunch 243750 -game $OF_DIR -secure -steam 2>&1 > /dev/null &
+    fi
+}
 main $@
