@@ -78,12 +78,13 @@ load_config()
     if [ -f "$CONFIG_FILE" ]; then
         . $CONFIG_FILE
     else
+        SVN="$DEFAULT_SVN"
         OF_REPO="https://svn.openfortress.fun/svn/open_fortress/"
         STEAM_DIR="$HOME/.local/share/Steam"
         OF_DIR=$STEAM_DIR/steamapps/sourcemods/open_fortress
 
         mkdir -p $(dirname $CONFIG_FILE)
-        echo "SVN=\"$DEFAULT_SVN\"" > $CONFIG_FILE
+        echo "SVN=\"$SVN\"" > $CONFIG_FILE
         echo "OF_REPO=\"$OF_REPO\"" >> $CONFIG_FILE
         echo "OF_DIR=\"$OF_DIR\"" >> $CONFIG_FILE
     fi
@@ -183,12 +184,12 @@ update_repo()
 
     # we cannot push throug the directory stack
     # so lets just store PWD
-    OWD=$PWD
-    cd $2
+    OWD="$PWD"
+    cd "$2"
 
     $SVN $UPDATE
 
-    cd $OWD
+    cd "$OWD"
     echo "Done."
 }
 
