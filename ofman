@@ -21,28 +21,31 @@ EDITOR=${EDITOR:-vi}
 CONFIG_FILE=${XDG_CONFIG_HOME:-${HOME}/.config}/ofman
 SPACING="   "
 
+RED=""
+BLUE=""
+GREEN=""
+CLEAR=""
+
+if [ "$(tput colors)" -eq 256 ] && [ -z "$NO_COLORS" ]; then
+    RED="$(tput setaf 9)"
+    BLUE="$(tput setaf 14)"
+    GREEN="$(tput setaf 10)"
+    CLEAR="$(tput sgr0)"
+fi
+
 err()
 {
-    # print in red for those bad bad errors
-    tput setaf 9
-    echo -e "$1"
-    tput sgr0
+    echo "$RED$@$CLEAR"
 }
 
 info()
 {
-    # print info in blue because pretty
-    tput setaf 14
-    echo -e "$1"
-    tput sgr0
+    echo "$BLUE$@$CLEAR"
 }
 
 fin()
 {
-    # print finished stuff green
-    tput setaf 10
-    echo -e "$1"
-    tput sgr0
+    echo "$GREEN$@$CLEAR"
 }
 
 help_message()
@@ -88,7 +91,7 @@ main()
             ;;
 
         config)
-            $EDITOR $CONFIG_FILE
+            $EDITOR "$CONFIG_FILE"
             ;;
 
         *)
@@ -107,7 +110,7 @@ load_config()
         STEAM_DIR="$HOME/.local/share/Steam"
         OF_DIR=$STEAM_DIR/steamapps/sourcemods/open_fortress
 
-        mkdir -p $(dirname $CONFIG_FILE)
+        mkdir -p "$(dirname $CONFIG_FILE)"
         echo "SVN=\"$SVN\"" > $CONFIG_FILE
         echo "OF_REPO=\"$OF_REPO\"" >> $CONFIG_FILE
         echo "OF_DIR=\"$OF_DIR\"" >> $CONFIG_FILE
@@ -163,6 +166,7 @@ resolve_dependencies()
 
         void)
             sudo xbps-install -Sy subversion || err "Couldn't install subversion using xbps."
+            ;;
 
         *)
             err "$SPACING Couldn't install dependencies."
