@@ -21,24 +21,19 @@ EDITOR=${EDITOR:-vi}
 CONFIG_FILE=${XDG_CONFIG_HOME:-${HOME}/.config}/ofman
 SPACING="   "
 
-RED=""
-BLUE=""
-GREEN=""
-CLEAR=""
-
 err()
 {
-    echo "$RED$@$CLEAR"
+    echo "${RED}${@}${CLEAR}"
 }
 
 info()
 {
-    echo "$BLUE$@$CLEAR"
+    echo "${BLUE}${@}${CLEAR}"
 }
 
 fin()
 {
-    echo "$GREEN$@$CLEAR"
+    echo "${GREEN}${@}${CLEAR}"
 }
 
 help_message()
@@ -96,17 +91,15 @@ detect_os()
 {
     DISTRO=""
 
-    if [ -z "$OSTYPE" ]; then
-        OSTYPE="$(uname)"
+	OS="$OSTYPE"
+	# OSTYPE is bashim, lets fall back to uname if its not available
+    if [ -z "$OS" ]; then
+        OS="$(uname)"
     fi
 
-    case $OSTYPE in
+    case $OS in
 
         linux-gnu | Linux)
-
-            if [ -f "/etc/os-release" ]; then
-                . /etc/os-release
-            fi
 
             for file in /etc/lsb-release /usr/lib/os-release \
                         /etc/os-release  /etc/openwrt_release; do
@@ -120,7 +113,7 @@ detect_os()
             ;;
 
         *BSD)
-            $DISTRO="$OSTYPE"
+            $DISTRO="$OS"
             ;;
 
         *)
@@ -154,8 +147,9 @@ load_config()
     else
         SVN="$DEFAULT_SVN"
         OF_REPO="https://svn.openfortress.fun/svn/open_fortress/"
-        STEAM_DIR="$HOME/.local/share/Steam"
-        OF_DIR=$STEAM_DIR/steamapps/sourcemods/open_fortress
+        # TODO check for flatpak steam
+        STEAM_DIR="${HOME}/.local/share/Steam"
+        OF_DIR="${STEAM_DIR}/steamapps/sourcemods/open_fortress"
 
         mkdir -p "$(dirname $CONFIG_FILE)"
         echo "SVN=\"$SVN\"" > $CONFIG_FILE
@@ -253,7 +247,7 @@ delete_repo()
         case $input in
             y*)
                 info "Deleting"
-                rm -rf $2
+                rm -rf "$2"
                 return
                 ;;
 
@@ -299,4 +293,5 @@ run()
         steam -applaunch 243750 -game $OF_DIR -secure -steam 2>&1 > /dev/null &
     fi
 }
+
 main $@
