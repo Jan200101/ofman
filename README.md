@@ -1,3 +1,8 @@
+# DEPRECATED
+
+ofman is being deprecated in favor of [OFLauncher](https://github.com/Jan200101/OFLauncher)
+right now OFLauncher provides most features ofman had except for configurable repo url and directory as well as support for alternative svn clients
+
 # ofman
 
 OpenFortress Manager is a script that will help you manage your OpenFortress installation on Linux.
